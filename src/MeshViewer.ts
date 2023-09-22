@@ -5,6 +5,8 @@
 
 import * as gfx from 'gophergfx'
 import { GUI } from 'dat.gui'
+import { MyGouraudMaterial } from './MyGouraudMaterial'
+import { MyPhongMaterial } from './MyPhongMaterial';
 import { ToonMaterial } from './ToonMaterial';
 import { OutlineMaterial } from './OutlineMaterial';
 import { NormalMapMaterial } from './NormalMapMaterial';
@@ -19,10 +21,10 @@ export class MeshViewer extends gfx.GfxApp
 
     private models: gfx.Mesh3[];
 
-    private gouradMaterial: gfx.GouraudMaterial;
-    private phongMaterial: gfx.PhongMaterial;
-    private unlitMaterial: gfx.UnlitMaterial;
     private wireframeMaterial: gfx.WireframeMaterial;
+    private unlitMaterial: gfx.UnlitMaterial;
+    private gouradMaterial: MyGouraudMaterial;
+    private phongMaterial: MyPhongMaterial;
     private toonMaterial: ToonMaterial;
     private outlineMaterial: OutlineMaterial;
     private normalMapMaterial: NormalMapMaterial;
