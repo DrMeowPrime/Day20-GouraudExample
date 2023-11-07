@@ -19,10 +19,5 @@ out vec2 uv;
 
 void main() 
 {
-    // Compute the final vertex position and normal
-    vertPosition = (modelMatrix * vec4(position, 1)).xyz;
-    vertNormal = normalize((normalMatrix * vec4(normal, 0)).xyz);
-    vertColor = color;
-    uv = texCoord.xy; 
-    gl_Position = projectionMatrix * viewMatrix * vec4(vertPosition, 1);
+    gl_Position = vec4(0,0,0,1);
 }

@@ -46,20 +46,20 @@ export class MeshViewer extends gfx.GfxApp
 
         this.cameraControls = new gfx.OrbitControls(this.camera);
 
-        this.renderStyle = 'Gouraud';
+        this.renderStyle = 'Wireframe';
         this.model = 'bunny.obj';
         this.texture = 'None';
         this.lightType = 'Point Light';
         
         this.models = [];
 
-        this.gouradMaterial = new gfx.GouraudMaterial();
-        this.phongMaterial = new gfx.PhongMaterial();
-        this.unlitMaterial = new gfx.UnlitMaterial();
         this.wireframeMaterial = new gfx.WireframeMaterial();
+        this.unlitMaterial = new gfx.UnlitMaterial();
+        this.gouradMaterial = new MyGouraudMaterial();
+        this.phongMaterial = new MyPhongMaterial();
         this.normalMapMaterial = new NormalMapMaterial();
 
-        // Toon shading mode actually uses two separate shaders, one for the 
+        // Toon shading mode uses two separate shaders, one for the 
         // the silhouette and one for the mesh. The toon material is wrapped 
         // within the outline material.
         this.toonMaterial = new ToonMaterial(
@@ -93,12 +93,12 @@ export class MeshViewer extends gfx.GfxApp
         renderControls.open();
 
         const renderStyleController = renderControls.add(this, 'renderStyle', [
+            'Wireframe',
+            'Unlit',
             'Gouraud', 
             'Phong', 
             'Toon',
-            'Normal Map',
-            'Unlit',
-            'Wireframe'
+            'Normal Map'
         ]);
         renderStyleController.name('');
         renderStyleController.onChange(()=>{this.changeRenderStyle()});
@@ -194,6 +194,7 @@ export class MeshViewer extends gfx.GfxApp
         });
 
         this.models[0].visible = true;
+        this.changeRenderStyle();
     }
     update(deltaTime: number): void 
     {
