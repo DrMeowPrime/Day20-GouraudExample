@@ -7,11 +7,11 @@ precision mediump float;
 
 const int MAX_LIGHTS = 8;
 
-uniform vec3 eyePosition;
+uniform vec3 eyePositionWorld;
 
 uniform int numLights;
 uniform int lightTypes[MAX_LIGHTS];
-uniform vec3 lightPositions[MAX_LIGHTS];
+uniform vec3 lightPositionsWorld[MAX_LIGHTS];
 uniform vec3 ambientIntensities[MAX_LIGHTS];
 uniform vec3 diffuseIntensities[MAX_LIGHTS];
 uniform vec3 specularIntensities[MAX_LIGHTS];
@@ -24,8 +24,8 @@ uniform float shininess;
 uniform int useTexture;
 uniform sampler2D textureImage;
 
-in vec3 vertPosition;
-in vec3 vertNormal;
+in vec3 vertPositionWorld;
+in vec3 vertNormalWorld;
 in vec4 vertColor;
 in vec2 uv;
 

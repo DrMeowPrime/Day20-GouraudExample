@@ -8,14 +8,15 @@ precision mediump float;
 const int MAX_LIGHTS = 8;
 
 uniform mat4 modelMatrix;
+uniform mat4 normalModelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
-uniform mat4 normalMatrix;
-uniform vec3 eyePosition;
+
+uniform vec3 eyePositionWorld;
 
 uniform int numLights;
 uniform int lightTypes[MAX_LIGHTS];
-uniform vec3 lightPositions[MAX_LIGHTS];
+uniform vec3 lightPositionsWorld[MAX_LIGHTS];
 uniform vec3 ambientIntensities[MAX_LIGHTS];
 uniform vec3 diffuseIntensities[MAX_LIGHTS];
 uniform vec3 specularIntensities[MAX_LIGHTS];
@@ -35,5 +36,7 @@ out vec2 uv;
 
 void main() 
 {
+
+    // Required: compute the vertex position in clip coordinates
     gl_Position = vec4(0,0,0,1);
 }
