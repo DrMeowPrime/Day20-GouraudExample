@@ -1,106 +1,96 @@
 #version 300 es
 
-// CSCI 4611 Assignment 5: Artistic Rendering
-// Normal mapping is a complex effect that will involve changing
-// both the vertex and fragment shader. This implementation is
-// based on the approach described below, and you are encouraged
-// to read this tutorial writeup for a deeper understanding.
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
+
+// Normal mapping based on the approach described in
 // https://learnopengl.com/Advanced-Lighting/Normal-Mapping
-
-// Most of the structure of this fragment shader has been implemented,
-// but you will need to complete the code that computes the normal n.
-
-// You should complete the vertex shader first, and then move on to
-// this fragment shader only after you have verified that is correct.
 
 precision mediump int;
 precision mediump float;
 
+// constants used to indicate the type of each light
 #define POINT_LIGHT 0
 #define DIRECTIONAL_LIGHT 1
 
+// max number of simultaneous lights handled by this shader
 const int MAX_LIGHTS = 8;
 
+
+// INPUT FROM UNIFORMS SET WITHIN THE MAIN APPLICATION
+
+// properties of the lights in the scene
 uniform int numLights;
 uniform int lightTypes[MAX_LIGHTS];
-uniform vec3 ambientIntensities[MAX_LIGHTS];
-uniform vec3 diffuseIntensities[MAX_LIGHTS];
-uniform vec3 specularIntensities[MAX_LIGHTS];
+uniform vec3 lightAmbientIntensities[MAX_LIGHTS];
+uniform vec3 lightDiffuseIntensities[MAX_LIGHTS];
+uniform vec3 lightSpecularIntensities[MAX_LIGHTS];
 
+// material properties (coefficents of reflection)
 uniform vec3 kAmbient;
 uniform vec3 kDiffuse;
 uniform vec3 kSpecular;
 uniform float shininess;
 
+// texture data
 uniform int useTexture;
-uniform sampler2D textureImage;
+uniform sampler2D surfaceTexture;
 
+// normal map data
 uniform int useNormalMap;
 uniform sampler2D normalMap;
 
-in vec4 vertColor;
-in vec2 uv;
-in vec3 vertPositionTangent;
+
+// INPUT FROM THE VERTEX SHADER AFTER INTERPOLATION ACROSS TRIANGLES BY THE RASTERIZER
+
+in vec4 interpColor;
+in vec2 interpTexCoords;
+in vec3 interpPositionTangent;
 in vec3 eyePositionTangent;
 in vec3 lightPositionsTangent[MAX_LIGHTS];
 
+
+// OUTPUT
 out vec4 fragColor;
+
 
 void main() 
 {
-    vec3 n; 
-    // If we have not loaded a normal map
-    if(useNormalMap == 0)
-    {
-        // In tangent space, the surface normal of the triangle
-        // is (0, 0, 1).  This will therefore produce the same
-        // result as a Phong shader.
-        n = vec3(0, 0, 1);
+    // The normal in Tangent Space
+    vec3 nTangent;
+
+    if (useNormalMap == 0) {
+        // If we have NOT loaded a normal map then we default to the surface
+        // normal of the triangle.  In Tangent Space, this is (0, 0, 1). 
+        // This essentially skips doing any normal mapping.  So, this case 
+        // should produce the same result as a Phong shader.
+        nTangent = vec3(0, 0, 1);
     }
-    // If normal mapping has been activated
-    else
-    {
-        // TO BE ADDED
-        // You will need to replace this line of code.  First, you
-        // should obtain the displaced normal from the normal map.
-        // This normal will be in the range [0, 1].  You will then
-        // need to convert it to be in the range [-1, 1].
-        n = vec3(0, 0, 1);
+    else {
+        // PART 2.3: Set the normal using data from the normal map texture
+
+
     }
 
-    vec3 illumination = vec3(0, 0, 0);
-    for(int i=0; i < numLights; i++)
-    {
-        // Ambient component
-        illumination += kAmbient * ambientIntensities[i];
 
-        // Compute the vector from the vertex position to the light
-        vec3 l;
-        if(lightTypes[i] == DIRECTIONAL_LIGHT)
-            l = normalize(lightPositionsTangent[i]);
-        else
-            l = normalize(lightPositionsTangent[i] - vertPositionTangent);
+    // Below this point, the code follows a typical Phong process of calculating
+    // illumination with the important change that all the calculations are done
+    // with points and vectors defined in Tangent Space to match the nTangent
+    // vector defined above.  You can copy the main for loop and illumination
+    // equations from your Phong shader and paste it below.  Just remember the
+    // original code calculates lighting in World Space.  To switch to calculating
+    // the lighting in Tangent Space, you need to use the Tangent Space versions
+    // of all of the points and vectors used in the calculations.
+    
+    // PART 2.3: Calculating illumination in Tangent Space
 
-        // Diffuse component
-        float diffuseComponent = max(dot(n, l), 0.0);
-        illumination += diffuseComponent * kDiffuse * diffuseIntensities[i];
+    // replace this line with your illumination code
+    fragColor = vec4(0,0,0,1);
 
-        // Compute the vector from the vertex to the eye
-        vec3 e = normalize(eyePositionTangent - vertPositionTangent);
 
-        // Compute the light vector reflected about the normal
-        vec3 r = reflect(-l, n);
 
-        // Specular component
-        float specularComponent = pow(max(dot(e, r), 0.0), shininess);
-        illumination += specularComponent * kSpecular * specularIntensities[i];
-    }
-
-    fragColor = vertColor;
-    fragColor.rgb *= illumination;
-
-    if(useTexture != 0)
-    {
-        fragColor *= texture(textureImage, uv);
-    }
 }

@@ -1,4 +1,10 @@
-// CSCI 4611 Assignment 5: Artistic Rendering
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
+
 // You only need to modify the shaders for this assignment.
 // You do not need to write any TypeScript code unless
 // you are planning to add wizard functionality.
@@ -32,15 +38,15 @@ export class ToonMaterial extends gfx.Material3
     private textureUniform: WebGLUniformLocation | null;
     private useTextureUniform: WebGLUniformLocation | null;
 
-    private eyePositionWorldUniform: WebGLUniformLocation | null;
+    private eyePositionUniform: WebGLUniformLocation | null;
     private modelUniform: WebGLUniformLocation | null;
-    private normalModelUniform: WebGLUniformLocation | null;
     private viewUniform: WebGLUniformLocation | null;
     private projectionUniform: WebGLUniformLocation | null;
+    private normalUniform: WebGLUniformLocation | null;
 
     private numLightsUniform: WebGLUniformLocation | null;
     private lightTypesUniform: WebGLUniformLocation | null;
-    private lightPositionsWorldUniform: WebGLUniformLocation | null;
+    private lightPositionsUniform: WebGLUniformLocation | null;
     private ambientIntensitiesUniform: WebGLUniformLocation | null;
     private diffuseIntensitiesUniform: WebGLUniformLocation | null;
     private specularIntensitiesUniform: WebGLUniformLocation | null;
@@ -77,29 +83,29 @@ export class ToonMaterial extends gfx.Material3
         this.kSpecularUniform = ToonMaterial.shader.getUniform(this.gl, 'kSpecular');
         this.shininessUniform = ToonMaterial.shader.getUniform(this.gl, 'shininess');
 
-        this.textureUniform = ToonMaterial.shader.getUniform(this.gl, 'textureImage');
+        this.textureUniform = ToonMaterial.shader.getUniform(this.gl, 'surfaceTexture');
         this.useTextureUniform = ToonMaterial.shader.getUniform(this.gl, 'useTexture');
 
-        this.eyePositionWorldUniform = ToonMaterial.shader.getUniform(this.gl, 'eyePositionWorld');
-        this.modelUniform = ToonMaterial.shader.getUniform(this.gl, 'modelMatrix');
-        this.normalModelUniform = ToonMaterial.shader.getUniform(this.gl, 'normalModelMatrix');
+        this.eyePositionUniform = ToonMaterial.shader.getUniform(this.gl, 'eyePositionWorld');
         this.viewUniform = ToonMaterial.shader.getUniform(this.gl, 'viewMatrix');
+        this.modelUniform = ToonMaterial.shader.getUniform(this.gl, 'modelMatrix');
         this.projectionUniform = ToonMaterial.shader.getUniform(this.gl, 'projectionMatrix');
+        this.normalUniform = ToonMaterial.shader.getUniform(this.gl, 'normalMatrix');
 
         this.numLightsUniform = ToonMaterial.shader.getUniform(this.gl, 'numLights');
         this.lightTypesUniform = ToonMaterial.shader.getUniform(this.gl, 'lightTypes');
-        this.lightPositionsWorldUniform = ToonMaterial.shader.getUniform(this.gl, 'lightPositionsWorld');
-        this.ambientIntensitiesUniform = ToonMaterial.shader.getUniform(this.gl, 'ambientIntensities');
-        this.diffuseIntensitiesUniform = ToonMaterial.shader.getUniform(this.gl, 'diffuseIntensities');
-        this.specularIntensitiesUniform = ToonMaterial.shader.getUniform(this.gl, 'specularIntensities');
+        this.lightPositionsUniform = ToonMaterial.shader.getUniform(this.gl, 'lightPositionsWorld');
+        this.ambientIntensitiesUniform = ToonMaterial.shader.getUniform(this.gl, 'lightAmbientIntensities');
+        this.diffuseIntensitiesUniform = ToonMaterial.shader.getUniform(this.gl, 'lightDiffuseIntensities');
+        this.specularIntensitiesUniform = ToonMaterial.shader.getUniform(this.gl, 'lightSpecularIntensities');
 
         this.diffuseRampUniform = ToonMaterial.shader.getUniform(this.gl, 'diffuseRamp');
         this.specularRampUniform = ToonMaterial.shader.getUniform(this.gl, 'specularRamp');
 
-        this.positionAttribute = ToonMaterial.shader.getAttribute(this.gl, 'position');
-        this.normalAttribute = ToonMaterial.shader.getAttribute(this.gl, 'normal');
+        this.positionAttribute = ToonMaterial.shader.getAttribute(this.gl, 'positionModel');
+        this.normalAttribute = ToonMaterial.shader.getAttribute(this.gl, 'normalModel');
         this.colorAttribute = ToonMaterial.shader.getAttribute(this.gl, 'color');
-        this.texCoordAttribute = ToonMaterial.shader.getAttribute(this.gl, 'texCoord');   
+        this.texCoordAttribute = ToonMaterial.shader.getAttribute(this.gl, 'texCoords');   
     }
 
     draw(mesh: gfx.Mesh3, camera: gfx.Camera, lightManager: gfx.LightManager): void
@@ -115,11 +121,11 @@ export class ToonMaterial extends gfx.Material3
         // Set the camera uniforms
         const cameraPosition = new gfx.Vector3();
         cameraPosition.transformPoint(camera.localToWorldMatrix);
-        this.gl.uniform3f(this.eyePositionWorldUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        this.gl.uniform3f(this.eyePositionUniform, cameraPosition.x, cameraPosition.y, cameraPosition.z);
         this.gl.uniformMatrix4fv(this.modelUniform, false, mesh.localToWorldMatrix.mat);
-        this.gl.uniformMatrix4fv(this.normalModelUniform, false, mesh.localToWorldMatrix.inverse().transpose().mat);
         this.gl.uniformMatrix4fv(this.viewUniform, false, camera.viewMatrix.mat);
         this.gl.uniformMatrix4fv(this.projectionUniform, false, camera.projectionMatrix.mat);
+        this.gl.uniformMatrix4fv(this.normalUniform, false, mesh.localToWorldMatrix.getInverse().getTranspose().mat);
 
         // Set the material property uniforms
         this.gl.uniform3f(this.kAmbientUniform, this.ambientColor.r, this.ambientColor.g, this.ambientColor.b);
@@ -130,63 +136,69 @@ export class ToonMaterial extends gfx.Material3
         // Set the light uniforms
         this.gl.uniform1i(this.numLightsUniform, lightManager.getNumLights());
         this.gl.uniform1iv(this.lightTypesUniform, lightManager.lightTypes);
-        this.gl.uniform3fv(this.lightPositionsWorldUniform, lightManager.lightPositions);
+        this.gl.uniform3fv(this.lightPositionsUniform, lightManager.lightPositions);
         this.gl.uniform3fv(this.ambientIntensitiesUniform, lightManager.ambientIntensities);
         this.gl.uniform3fv(this.diffuseIntensitiesUniform, lightManager.diffuseIntensities);
         this.gl.uniform3fv(this.specularIntensitiesUniform, lightManager.specularIntensities);
 
         // Set the diffuse and specular ramps
-        this.gl.activeTexture(this.gl.TEXTURE0 + this.diffuseRamp.id)
+        this.gl.activeTexture(this.gl.TEXTURE1);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.diffuseRamp.texture);
-        this.gl.uniform1i(this.diffuseRampUniform, this.diffuseRamp.id);
+        this.gl.uniform1i(this.diffuseRampUniform, 1);
         
-        this.gl.activeTexture(this.gl.TEXTURE0 + this.specularRamp.id)
+        this.gl.activeTexture(this.gl.TEXTURE2);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.specularRamp.texture);
-        this.gl.uniform1i(this.specularRampUniform, this.specularRamp.id);
+        this.gl.uniform1i(this.specularRampUniform, 2);
         
         // Set the vertex positions
-        this.gl.enableVertexAttribArray(this.positionAttribute);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.positionBuffer);
-        this.gl.vertexAttribPointer(this.positionAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        if (this.positionAttribute != -1) {
+            this.gl.enableVertexAttribArray(this.positionAttribute);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.positionBuffer);
+            this.gl.vertexAttribPointer(this.positionAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        }
 
         // Set the vertex normals
-        this.gl.enableVertexAttribArray(this.normalAttribute);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.normalBuffer);
-        this.gl.vertexAttribPointer(this.normalAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        if (this.normalAttribute != -1) {
+            this.gl.enableVertexAttribArray(this.normalAttribute);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.normalBuffer);
+            this.gl.vertexAttribPointer(this.normalAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        }
 
         // Set the vertex colors
-        if(mesh.hasVertexColors)
-        {
-            this.gl.enableVertexAttribArray(this.colorAttribute);
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.colorBuffer);
-            this.gl.vertexAttribPointer(this.colorAttribute, 4, this.gl.FLOAT, false, 0, 0);
-        }
-        else
-        {
-            this.gl.disableVertexAttribArray(this.colorAttribute);
-            this.gl.vertexAttrib4f(this.colorAttribute, 1, 1, 1, 1);
+        if (this.colorAttribute != -1) {
+            if (mesh.hasVertexColors) {
+                this.gl.enableVertexAttribArray(this.colorAttribute);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.colorBuffer);
+                this.gl.vertexAttribPointer(this.colorAttribute, 4, this.gl.FLOAT, false, 0, 0);
+            }
+            else {
+                this.gl.disableVertexAttribArray(this.colorAttribute);
+                this.gl.vertexAttrib4f(this.colorAttribute, 1, 1, 1, 1);
+            }
         }
 
-        if(this.texture)
-        {
+        if (this.texture) {
             // Activate the texture in the shader
             this.gl.uniform1i(this.useTextureUniform, 1);
 
             // Set the texture
-            this.gl.activeTexture(this.gl.TEXTURE0 + this.texture.id)
+            this.gl.activeTexture(this.gl.TEXTURE0)
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture.texture);
-            this.gl.uniform1i(this.textureUniform, this.texture.id);
+            this.gl.uniform1i(this.textureUniform, 0);
 
             // Set the texture coordinates
-            this.gl.enableVertexAttribArray(this.texCoordAttribute);
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.texCoordBuffer);
-            this.gl.vertexAttribPointer(this.texCoordAttribute, 2, this.gl.FLOAT, false, 0, 0);
+            if (this.texCoordAttribute != -1) {
+                this.gl.enableVertexAttribArray(this.texCoordAttribute);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.texCoordBuffer);
+                this.gl.vertexAttribPointer(this.texCoordAttribute, 2, this.gl.FLOAT, false, 0, 0);
+            }
         }
-        else
-        {
+        else {
             // Disable the texture in the shader
             this.gl.uniform1i(this.useTextureUniform, 0);
-            this.gl.disableVertexAttribArray(this.texCoordAttribute);
+            if (this.texCoordAttribute != -1) {
+                this.gl.disableVertexAttribArray(this.texCoordAttribute);
+            }
         }
 
         // Draw the triangles

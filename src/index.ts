@@ -1,9 +1,11 @@
-// CSCI 4611 Assignment 5: Artistic Rendering
-// You only need to modify the shaders for this assignment.
-// You do not need to write any TypeScript code unless
-// you are planning to add wizard functionality.
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
 
-import { MeshViewer } from './MeshViewer'
+import { App } from './App'
 
-const meshViewer = new MeshViewer();
-meshViewer.start();
+const app = new App();
+app.start();

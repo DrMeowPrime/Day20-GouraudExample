@@ -1,72 +1,85 @@
 #version 300 es
 
-// CSCI 4611 Assignment 5: Artistic Rendering
-// Normal mapping is a complex effect that will involve changing
-// both the vertex and fragment shader. This implementation is
-// based on the approach described below, and you are encouraged
-// to read this tutorial writeup for a deeper understanding.
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
+
+// Normal mapping based on the approach described in
 // https://learnopengl.com/Advanced-Lighting/Normal-Mapping
-
-// Most of the structure of this vertex shader has been implemented,
-// but you will need to complete the code that computes the TBN matrix.
-
-// You should complete this vertex shader first, and then move on to
-// the fragment shader only after you have verified that is correct.
 
 precision mediump int;
 precision mediump float;
 
+// max number of simultaneous lights handled by this shader
 const int MAX_LIGHTS = 8;
 
-uniform int numLights;
-uniform vec3 lightPositionsWorld[MAX_LIGHTS];
-uniform vec3 eyePositionWorld;
 
+// INPUT FROM UNIFORMS SET IN THE MAIN APPLICATION
+
+// Transforms points and vectors from Model Space to World Space (modelToWorld)
 uniform mat4 modelMatrix;
-uniform mat4 normalModelMatrix;
+// Special version of the modelMatrix to use with normal vectors
+uniform mat4 normalMatrix;
+// Transforms points and vectors from World Space to View Space (a.k.a. Eye Space) (worldToView) 
 uniform mat4 viewMatrix;
+// Transforms points and vectors from View Space to Normalized Device Coordinates (viewToNDC)
 uniform mat4 projectionMatrix;
 
-in vec3 position;
-in vec3 normal;
-in vec3 tangent;
-in vec4 color;
-in vec2 texCoord;
+// position of the camera in world coordinates
+uniform vec3 eyePositionWorld;
 
-out vec4 vertColor;
-out vec2 uv;
-out vec3 vertPositionTangent;
+// properties of the lights in the scene
+uniform int numLights;
+uniform vec3 lightPositionsWorld[MAX_LIGHTS];
+
+
+// INPUT FROM THE MESH WE ARE RENDERING WITH THIS SHADER
+
+// per-vertex data, points and vectors are defined in Model Space
+in vec3 positionModel;
+in vec3 normalModel;
+in vec3 tangentModel;
+in vec4 color;
+in vec2 texCoords;
+
+
+// OUTPUT TO RASTERIZER TO INTERPOLATE ACROSS TRIANGLES AND SEND TO FRAGMENT SHADERS
+
+out vec4 interpColor;
+out vec2 interpTexCoords;
+out vec3 interpPositionTangent;
 out vec3 eyePositionTangent;
 out vec3 lightPositionsTangent[MAX_LIGHTS];
 
+
 void main() 
 {
-    // Assign the vertex color and uv
-    vertColor = color;
-    uv = texCoord.xy; 
+    // Pass the vertex's color and texture coordinates on to the rasterizer to interpolate 
+    // across triagles so we can read these values later in the fragment shader.
+    interpColor = color;
+    interpTexCoords = texCoords.xy; 
 
     // Compute the world vertex position
-    vec3 vertPositionWorld = (modelMatrix * vec4(position, 1)).xyz;   
+    vec3 positionWorld = (modelMatrix * vec4(positionModel, 1)).xyz;   
 
-    // TO BE ADDED
-    // This line of code sets the TBN to an identity matrix.
-    // You will need to replace it and compute the matrix that
-    // converts vertices from world space to tangent space. 
-    // When this part is completed correctly, it will produce
-    // a result that looks identical to the Phong shader.
-    // Then, you can move on to complete the fragment shader.
-    mat3 tbn = mat3(1.0f);
 
-    // Compute the tangent space vertex and view positions
-    vertPositionTangent = tbn * vertPositionWorld;
-    eyePositionTangent = tbn * eyePositionWorld;
+    // PART 2.3: Computing the TBN matrix and then using it to transform:
+    // - the vertex position
+    // - the eye position
+    // - the position of each light in the lights array
+    // The results should then be saved in the output variables already defined above
+    // to pass on to the rasterizer and fragment shader.
 
-    // Compute the tangent space light positions
-    for(int i=0; i < numLights; i++)
-    {
-        lightPositionsTangent[i] = tbn * lightPositionsTangent[i];
-    }
-    
-    // Compute the projected vertex position
-    gl_Position = projectionMatrix * viewMatrix * vec4(vertPositionWorld, 1);
+
+
+
+
+
+
+
+
+    gl_Position = projectionMatrix * viewMatrix * vec4(positionWorld, 1);
 }

@@ -1,31 +1,38 @@
-// CSCI 4611 Assignment 5: Artistic Rendering
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
+
 // You only need to modify the shaders for this assignment.
 // You do not need to write any TypeScript code unless
 // you are planning to add wizard functionality.
 
 import * as gfx from 'gophergfx'
 import { GUI } from 'dat.gui'
-import { MyGouraudMaterial } from './MyGouraudMaterial'
-import { MyPhongMaterial } from './MyPhongMaterial';
+
 import { ToonMaterial } from './ToonMaterial';
 import { OutlineMaterial } from './OutlineMaterial';
 import { NormalMapMaterial } from './NormalMapMaterial';
+import { MyGouraudMaterial } from './MyGouraudMaterial';
+import { MyPhongMaterial } from './MyPhongMaterial';
 
-export class MeshViewer extends gfx.GfxApp
+export class App extends gfx.GfxApp
 {
     private cameraControls: gfx.OrbitControls;
     public renderStyle: string;
-    public toonOutlineThickness: number;
+    public thickness: number;
     public model: string;
     public texture: string;
     public lightType: string;
 
     private models: gfx.Mesh3[];
 
-    private wireframeMaterial: gfx.WireframeMaterial;
-    private unlitMaterial: gfx.UnlitMaterial;
     private gouradMaterial: MyGouraudMaterial;
     private phongMaterial: MyPhongMaterial;
+    private unlitMaterial: gfx.UnlitMaterial;
+    private wireframeMaterial: gfx.WireframeMaterial;
     private toonMaterial: ToonMaterial;
     private outlineMaterial: OutlineMaterial;
     private normalMapMaterial: NormalMapMaterial;
@@ -40,36 +47,40 @@ export class MeshViewer extends gfx.GfxApp
     private pointLight: gfx.PointLight;
     private directionalLight: gfx.DirectionalLight;
 
+    // --- Create the App class ---
     constructor()
     {
-        // Enable the stencil buffer
+        // initialize the base class gfx.GfxApp
+        // the argument is a boolean that enables the stencil buffer
         super(true);
 
         this.cameraControls = new gfx.OrbitControls(this.camera);
 
         this.renderStyle = 'Wireframe';
-        this.toonOutlineThickness = 0.01;
-        this.model = 'bunny.obj';
+        this.thickness = 0.02;
+        this.model = 'teapot.obj';
         this.texture = 'None';
         this.lightType = 'Point Light';
         
         this.models = [];
 
-        this.wireframeMaterial = new gfx.WireframeMaterial();
-        this.unlitMaterial = new gfx.UnlitMaterial();
         this.gouradMaterial = new MyGouraudMaterial();
         this.phongMaterial = new MyPhongMaterial();
+        this.unlitMaterial = new gfx.UnlitMaterial();
+        this.wireframeMaterial = new gfx.WireframeMaterial();
         this.normalMapMaterial = new NormalMapMaterial();
 
-        // Toon shading mode uses two separate shaders, one for the 
+        // Toon shading mode actually uses two separate shaders, one for the 
         // the silhouette and one for the mesh. The toon material is wrapped 
         // within the outline material.
         this.toonMaterial = new ToonMaterial(
             new gfx.Texture('./assets/ramps/toonDiffuse.png'),
-            new gfx.Texture('./assets/ramps/toonSpecular.png'),
+            new gfx.Texture('./assets/ramps/toonSpecular.png')
+            //new gfx.Texture('./assets/ramps/standardDiffuse.png'),
+            //new gfx.Texture('./assets/ramps/standardSpecular.png')
         );
         this.outlineMaterial = new OutlineMaterial(this.toonMaterial);
-        this.outlineMaterial.thickness = this.toonOutlineThickness;
+        this.outlineMaterial.thickness = this.thickness;
 
         this.gravelTexture = new gfx.Texture('./assets/textures/Gravel_001_BaseColor.jpg');
         this.gravelNormalMap = new gfx.Texture('./assets/textures/Gravel_001_Normal.jpg');
@@ -85,6 +96,7 @@ export class MeshViewer extends gfx.GfxApp
 
         this.createGUI();
     }
+
 
     createGUI(): void
     {
@@ -106,25 +118,18 @@ export class MeshViewer extends gfx.GfxApp
         renderStyleController.name('');
         renderStyleController.onChange(()=>{this.changeRenderStyle()});
 
-        const toonControls = gui.addFolder('Toon Outline Options');
-        toonControls.open();
-        toonControls.add(this, 'toonOutlineThickness')
-            .min(0)
-            .max(0.05)
-            .name('Thickness')
-            .onChange(()=>{ this.outlineMaterial.thickness = this.toonOutlineThickness; });
-
         const modelControls = gui.addFolder('Model');
         modelControls.open();
 
         const modelController = modelControls.add(this, 'model', [
+            'teapot.obj',
             'bunny.obj', 
             'cow.obj',
             'cube.obj', 
             'head.obj',
             'hippo.obj',
             'sphere.obj',
-            'teapot.obj'
+            'ellipsoid.obj'
         ]);
         modelController.name('');
         modelController.onChange(()=>{this.changeModel()});     
@@ -151,8 +156,16 @@ export class MeshViewer extends gfx.GfxApp
         ]);
         lightController.name('');
         lightController.onChange(()=>{this.changeLight()});
+
+        const outlineControls = gui.addFolder('Toon Outline Options');
+        outlineControls.open();
+
+        const thicknessController = outlineControls.add(this, 'thickness', 0, 0.05);
+        thicknessController.onChange(()=>{ this.outlineMaterial.thickness = this.thickness; });
     }
 
+
+    // --- Initialize the graphics scene ---
     createScene(): void 
     {
         // Setup camera
@@ -189,13 +202,14 @@ export class MeshViewer extends gfx.GfxApp
 
         this.outlineMaterial.color.set(0, 0, 0);
 
+        this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/teapot.obj'));
         this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/bunny.obj'));
         this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/cow.obj'));
         this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/cube.obj'));
         this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/head.obj'));
         this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/hippo.obj'));
         this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/sphere.obj'));
-        this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/teapot.obj'));
+        this.models.push(gfx.MeshLoader.loadOBJ('./assets/models/ellipsoid.obj'));
 
         this.models.forEach((model: gfx.Mesh3) => {
             model.material = this.gouradMaterial;
@@ -203,14 +217,20 @@ export class MeshViewer extends gfx.GfxApp
             this.scene.add(model);
         });
 
-        this.models[0].visible = true;
+        this.changeModel();
         this.changeRenderStyle();
     }
+
+    
+    // --- Update is called once each frame by the main graphics loop ---
     update(deltaTime: number): void 
     {
-        // Nothing to implement here for this assignment
+        // Update the camera controller
         this.cameraControls.update(deltaTime);
+
+        // Nothing to implement here for this assignment
     }
+
 
     private changeRenderStyle(): void
     {
@@ -252,63 +272,69 @@ export class MeshViewer extends gfx.GfxApp
        }
     }
 
+
     private changeModel(): void
     {
-        if(this.model == 'bunny.obj')
-        {
+        if (this.model == 'teapot.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[0].visible = true;
-            this.setMaterialSide(gfx.Side.FRONT);
+            this.setMaterialSide(gfx.Side.DOUBLE);
         }
-        else if(this.model == 'cow.obj')
-        {
+        else if (this.model == 'bunny.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[1].visible = true;
             this.setMaterialSide(gfx.Side.FRONT);
         }
-        else if(this.model == 'cube.obj')
-        {
+        else if (this.model == 'cow.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[2].visible = true;
             this.setMaterialSide(gfx.Side.FRONT);
         }
-        else if(this.model == 'head.obj')
-        {
+        else if (this.model == 'cube.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[3].visible = true;
             this.setMaterialSide(gfx.Side.FRONT);
         }
-        else if(this.model == 'hippo.obj')
-        {
+        else if (this.model == 'head.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[4].visible = true;
             this.setMaterialSide(gfx.Side.FRONT);
         }
-        else if(this.model == 'sphere.obj')
-        {
+        else if (this.model == 'hippo.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[5].visible = true;
             this.setMaterialSide(gfx.Side.FRONT);
         }
-        else if(this.model == 'teapot.obj')
-        {
+        else if (this.model == 'sphere.obj') {
             this.models.forEach((model: gfx.Mesh3) => {
                 model.visible = false;
             });
             this.models[6].visible = true;
-            this.setMaterialSide(gfx.Side.DOUBLE);
+            this.setMaterialSide(gfx.Side.FRONT);
+        }
+        else if (this.model == 'ellipsoid.obj') {
+            this.models.forEach((model: gfx.Mesh3) => {
+                model.visible = false;
+            });
+            this.models[7].visible = true;
+            this.setMaterialSide(gfx.Side.FRONT);
+            // note: actually the same model as the sphere but with a non-uniform
+            // scale in the model matrix. this is a case where the normal matrix 
+            // will be different than the model matrix - so a good test.
+            this.models[7].scale.set(0.75, 1.2, 0.75);
+            this.models[7].rotation.setAxisAngle(gfx.Vector3.X_AXIS, Math.PI/2.0);    
         }
     }
 
@@ -436,6 +462,7 @@ export class MeshViewer extends gfx.GfxApp
         }
     }
 
+
     private setMaterialSide(side: gfx.Side): void
     {
         this.gouradMaterial.side = side;
@@ -445,6 +472,7 @@ export class MeshViewer extends gfx.GfxApp
         this.normalMapMaterial.side = side;
     }
 
+    
     private changeLight(): void
     {
         if(this.lightType == 'Point Light')

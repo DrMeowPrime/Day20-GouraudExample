@@ -1,3 +1,14 @@
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
+
+// You only need to modify the shaders for this assignment.
+// You do not need to write any TypeScript code unless
+// you are planning to add wizard functionality.
+
 // @ts-ignore
 import phongVertexShader from './shaders/myphong.vert'
 // @ts-ignore
@@ -25,7 +36,7 @@ export class MyPhongMaterial extends gfx.Material3
     private useTextureUniform: WebGLUniformLocation | null;
 
     private modelUniform: WebGLUniformLocation | null;
-    private normalModelUniform: WebGLUniformLocation | null;
+    private normalUniform: WebGLUniformLocation | null;
     private viewUniform: WebGLUniformLocation | null;
     private projectionUniform: WebGLUniformLocation | null;
 
@@ -59,11 +70,11 @@ export class MyPhongMaterial extends gfx.Material3
         this.kSpecularUniform = MyPhongMaterial.shader.getUniform(this.gl, 'kSpecular');
         this.shininessUniform = MyPhongMaterial.shader.getUniform(this.gl, 'shininess');
 
-        this.textureUniform = MyPhongMaterial.shader.getUniform(this.gl, 'textureImage');
+        this.textureUniform = MyPhongMaterial.shader.getUniform(this.gl, 'surfaceTexture');
         this.useTextureUniform = MyPhongMaterial.shader.getUniform(this.gl, 'useTexture');
 
         this.modelUniform = MyPhongMaterial.shader.getUniform(this.gl, 'modelMatrix');
-        this.normalModelUniform = MyPhongMaterial.shader.getUniform(this.gl, 'normalModelMatrix');
+        this.normalUniform = MyPhongMaterial.shader.getUniform(this.gl, 'normalMatrix');
         this.viewUniform = MyPhongMaterial.shader.getUniform(this.gl, 'viewMatrix');
         this.projectionUniform = MyPhongMaterial.shader.getUniform(this.gl, 'projectionMatrix');
 
@@ -71,14 +82,14 @@ export class MyPhongMaterial extends gfx.Material3
         this.numLightsUniform = MyPhongMaterial.shader.getUniform(this.gl, 'numLights');
         this.lightTypesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'lightTypes');
         this.lightPositionsWorldUniform = MyPhongMaterial.shader.getUniform(this.gl, 'lightPositionsWorld');
-        this.ambientIntensitiesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'ambientIntensities');
-        this.diffuseIntensitiesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'diffuseIntensities');
-        this.specularIntensitiesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'specularIntensities');
+        this.ambientIntensitiesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'lightAmbientIntensities');
+        this.diffuseIntensitiesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'lightDiffuseIntensities');
+        this.specularIntensitiesUniform = MyPhongMaterial.shader.getUniform(this.gl, 'lightSpecularIntensities');
 
-        this.positionAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'position');
-        this.normalAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'normal');
+        this.positionAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'positionModel');
+        this.normalAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'normalModel');
         this.colorAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'color');
-        this.texCoordAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'texCoord');   
+        this.texCoordAttribute = MyPhongMaterial.shader.getAttribute(this.gl, 'texCoords');   
     }
 
     draw(mesh: gfx.Mesh3, camera: gfx.Camera, lightManager: gfx.LightManager): void
@@ -93,10 +104,10 @@ export class MyPhongMaterial extends gfx.Material3
 
         // Set the camera and model matrix uniforms
         const modelMatrix = mesh.localToWorldMatrix;
-        const normalModelMatrix = modelMatrix.inverse().transpose();
+        const normalModelMatrix = modelMatrix.getInverse().getTranspose();
         const cameraPositionWorld = camera.localToWorldMatrix.transformPoint(new gfx.Vector3(0,0,0));
         this.gl.uniformMatrix4fv(this.modelUniform, false, modelMatrix.mat);
-        this.gl.uniformMatrix4fv(this.normalModelUniform, false, normalModelMatrix.mat);
+        this.gl.uniformMatrix4fv(this.normalUniform, false, normalModelMatrix.mat);
         this.gl.uniformMatrix4fv(this.viewUniform, false, camera.viewMatrix.mat);
         this.gl.uniformMatrix4fv(this.projectionUniform, false, camera.projectionMatrix.mat);
 
@@ -116,48 +127,54 @@ export class MyPhongMaterial extends gfx.Material3
         this.gl.uniform3fv(this.specularIntensitiesUniform, lightManager.specularIntensities);
 
         // Set the vertex positions
-        this.gl.enableVertexAttribArray(this.positionAttribute);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.positionBuffer);
-        this.gl.vertexAttribPointer(this.positionAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        if (this.positionAttribute != -1) {
+            this.gl.enableVertexAttribArray(this.positionAttribute);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.positionBuffer);
+            this.gl.vertexAttribPointer(this.positionAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        }
 
         // Set the vertex normals
-        this.gl.enableVertexAttribArray(this.normalAttribute);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.normalBuffer);
-        this.gl.vertexAttribPointer(this.normalAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        if (this.normalAttribute != -1) {
+            this.gl.enableVertexAttribArray(this.normalAttribute);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.normalBuffer);
+            this.gl.vertexAttribPointer(this.normalAttribute, 3, this.gl.FLOAT, false, 0, 0);
+        }
 
         // Set the vertex colors
-        if(mesh.hasVertexColors)
-        {
-            this.gl.enableVertexAttribArray(this.colorAttribute);
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.colorBuffer);
-            this.gl.vertexAttribPointer(this.colorAttribute, 4, this.gl.FLOAT, false, 0, 0);
-        }
-        else
-        {
-            this.gl.disableVertexAttribArray(this.colorAttribute);
-            this.gl.vertexAttrib4f(this.colorAttribute, 1, 1, 1, 1);
+        if (this.colorAttribute != -1) {
+            if (mesh.hasVertexColors) {
+                this.gl.enableVertexAttribArray(this.colorAttribute);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.colorBuffer);
+                this.gl.vertexAttribPointer(this.colorAttribute, 4, this.gl.FLOAT, false, 0, 0);
+            }
+            else {
+                this.gl.disableVertexAttribArray(this.colorAttribute);
+                this.gl.vertexAttrib4f(this.colorAttribute, 1, 1, 1, 1);
+            }
         }
 
-        if(this.texture)
-        {
+        if (this.texture) {
             // Activate the texture in the shader
             this.gl.uniform1i(this.useTextureUniform, 1);
 
             // Set the texture
-            this.gl.activeTexture(this.gl.TEXTURE0 + this.texture.id)
+            this.gl.activeTexture(this.gl.TEXTURE0)
             this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture.texture);
-            this.gl.uniform1i(this.textureUniform, this.texture.id);
+            this.gl.uniform1i(this.textureUniform, 0);
 
             // Set the texture coordinates
-            this.gl.enableVertexAttribArray(this.texCoordAttribute);
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.texCoordBuffer);
-            this.gl.vertexAttribPointer(this.texCoordAttribute, 2, this.gl.FLOAT, false, 0, 0);
+            if (this.texCoordAttribute != -1) {
+                this.gl.enableVertexAttribArray(this.texCoordAttribute);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.texCoordBuffer);
+                this.gl.vertexAttribPointer(this.texCoordAttribute, 2, this.gl.FLOAT, false, 0, 0);
+            }
         }
-        else
-        {
+        else {
             // Disable the texture in the shader
             this.gl.uniform1i(this.useTextureUniform, 0);
-            this.gl.disableVertexAttribArray(this.texCoordAttribute);
+            if (this.texCoordAttribute != -1) {
+                this.gl.disableVertexAttribArray(this.texCoordAttribute);
+            }
         }
 
         // Draw the triangles

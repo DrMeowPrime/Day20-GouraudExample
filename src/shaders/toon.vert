@@ -1,36 +1,53 @@
 #version 300 es
 
-// CSCI 4611 Assignment 5: Artistic Rendering
-// This vertex shader is identical to the one used
-// for Phong shading. You do not need to modify it.
+/* Assignment 5: Artistic Rendering
+ * Original C++ implementation by UMN CSCI 4611 Instructors, 2012+
+ * GopherGfx implementation by Evan Suma Rosenberg <suma@umn.edu>, 2022-2024
+ * License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+ * PUBLIC DISTRIBUTION OF SOURCE CODE OUTSIDE OF CSCI 4611 IS PROHIBITED
+ */ 
 
 precision mediump float;
 
+
+// INPUT FROM UNIFORMS SET WITHIN THE MAIN APPLICATION
+
+// Transforms points and vectors from Model Space to World Space (modelToWorld)
 uniform mat4 modelMatrix;
-uniform mat4 normalModelMatrix;
+// Special version of the modelMatrix to use with normal vectors
+uniform mat4 normalMatrix;
+// Transforms points and vectors from World Space to View Space (a.k.a. Eye Space) (worldToView) 
 uniform mat4 viewMatrix;
+// Transforms points and vectors from View Space to Normalized Device Coordinates (viewToNDC)
 uniform mat4 projectionMatrix;
 
-in vec3 position;
-in vec3 normal;
+
+// INPUT FROM THE MESH WE ARE RENDERING WITH THIS SHADER
+
+// per-vertex data, points and vectors are defined in Model Space
+in vec3 positionModel;
+in vec3 normalModel;
 in vec4 color;
-in vec2 texCoord;
+in vec2 texCoords;
 
-out vec3 vertPositionWorld;
-out vec3 vertNormalWorld;
-out vec4 vertColor;
-out vec2 uv;
 
-void main() 
-{
-    // Compute the world space vertex position and normal so we can use them in the fragement shader
-    vertPositionWorld = (modelMatrix * vec4(position, 1)).xyz;
-    vertNormalWorld = normalize((normalModelMatrix * vec4(normal, 0)).xyz);
+// OUTPUT TO RASTERIZER TO INTERPOLATE ACROSS TRIANGLES AND SEND TO FRAGMENT SHADERS
 
-    // Also pass the vertex color and texture coordinates along to the fragment shader
-    vertColor = color;
-    uv = texCoord.xy; 
+out vec3 interpPositionWorld;
+out vec3 interpNormalWorld;
+out vec4 interpColor;
+out vec2 interpTexCoords;
 
-    // Required: compute the vertex position in clip coordinates
-    gl_Position = projectionMatrix * viewMatrix * vec4(vertPositionWorld, 1);
+
+void main() {
+
+    // PART 2.1: Toon Shading with Texture Ramps
+
+    // For toon shading, the interesting work happens in the fragment
+    // shader.  This vertex shader should be exactly the same as the
+    // Phong vertex shader.  You can copy your Phong vertex shader here.
+
+
+
+
 }
