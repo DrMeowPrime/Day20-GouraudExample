@@ -63,6 +63,40 @@ out vec2 interpTexCoords;
 
 void main()  {
     // PART 2.0: In class example
-    
-    gl_Position = vec4(0,0,0,1);
+    vec4 positionModel4 = vec4(positionModel, 1);
+    vec4 positionWorld = modelMatrix * positionModel4;
+    vec4 normalWorld = normalMatrix * vec4(normalModel, 0);
+    vec4 positionView = viewMatrix * positionWorld;
+
+    // Required: compute the vertex position in clip coordinates
+   
+    vec3 illumination = vec3(0,0,0);
+    for (int i = 0; i < numLights; i++) {
+        // add in the ambient component
+        illumination += kAmbient * lightAmbientIntensities[i];
+
+        vec3 lWorld;
+        // add in the diffuse component
+        // n dot l
+        if (lightTypes[i] == DIRECTIONAL_LIGHT) {
+            lWorld = normalize(lightPositionsWorld[i]);
+        } else {    
+            lWorld = normalize(lightPositionsWorld[i] - positionWorld.xyz); // positionWorld.xyz is called "Swizzling", choosing what you want from it
+        }        
+        float diffuseIntesity = max(dot(normalWorld.xyz, lWorld), 0.0);
+        illumination += kDiffuse * lightDiffuseIntensities[i] * diffuseIntesity;
+
+        // add in the specular component
+        vec3 eWorld = normalize(eyePositionWorld - positionModel);
+        vec3 rWorld = reflect(-lWorld, normalWorld.xyz);
+        float specularIntensity = pow(max(dot(eWorld, rWorld), 0.0), shininess);
+        illumination += kSpecular * lightSpecularIntensities[i] * specularIntensity;
+
+    }
+
+    interpColor = vec4(illumination, 1);
+    interpTexCoords = texCoords;
+
+     // gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1); // this is to screen space
+    gl_Position = projectionMatrix * positionView;
 }
